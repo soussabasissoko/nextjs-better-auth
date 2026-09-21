@@ -1,11 +1,9 @@
 "use client";
 
 import {
-  IconCreditCard,
   IconDotsVertical,
-  IconLogout,
-  IconNotification,
   IconUserCircle,
+  IconSettings,
 } from "@tabler/icons-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -24,11 +22,27 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { user } from "@src/generated/prisma/client";
 import LogoutButton from "./auth/logout-button";
+import Link from "next/link";
 
-export function NavUser({ user }: { user: user }) {
+interface NavUserProps {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    image: string | null;
+  };
+}
+
+export function NavUser({ user }: NavUserProps) {
   const { isMobile } = useSidebar();
+
+  const initials = user.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <SidebarMenu>
@@ -39,12 +53,16 @@ export function NavUser({ user }: { user: user }) {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar className="h-8 w-8 rounded-lg grayscale">
-                {/* <AvatarImage src={user.avatar} alt={user.name} /> */}
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+              <Avatar className="h-8 w-8 rounded-lg border-2 border-orange-200 dark:border-orange-900">
+                {user.image ? (
+                  <AvatarImage src={user.image} alt={user.name} />
+                ) : null}
+                <AvatarFallback className="rounded-lg bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400 font-bold text-xs">
+                  {initials}
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
+                <span className="truncate font-semibold">{user.name}</span>
                 <span className="text-muted-foreground truncate text-xs">
                   {user.email}
                 </span>
@@ -53,21 +71,23 @@ export function NavUser({ user }: { user: user }) {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-xl"
             side={isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  {/* <AvatarImage src={user.avatar} alt={user.name} /> */}
-                  <AvatarFallback className="rounded-lg uppercase">
-                    {user.name.slice(0, 2)}
+              <div className="flex items-center gap-2 px-2 py-2 text-left text-sm">
+                <Avatar className="h-8 w-8 rounded-lg border-2 border-orange-200 dark:border-orange-900">
+                  {user.image ? (
+                    <AvatarImage src={user.image} alt={user.name} />
+                  ) : null}
+                  <AvatarFallback className="rounded-lg bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400 font-bold text-xs">
+                    {initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
+                  <span className="truncate font-semibold">{user.name}</span>
                   <span className="text-muted-foreground truncate text-xs">
                     {user.email}
                   </span>
@@ -76,14 +96,21 @@ export function NavUser({ user }: { user: user }) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <IconUserCircle />
-                Account
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/account" className="cursor-pointer">
+                  <IconUserCircle className="mr-2" />
+                  Mon Profil
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/setting" className="cursor-pointer">
+                  <IconSettings className="mr-2" />
+                  Paramètres
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <IconLogout />
+            <DropdownMenuItem asChild>
               <LogoutButton />
             </DropdownMenuItem>
           </DropdownMenuContent>

@@ -37,3 +37,38 @@ export type user = Prisma.userModel
  * 
  */
 export type verification = Prisma.verificationModel
+/**
+ * Model Recipe
+ * 
+ */
+export type Recipe = Prisma.RecipeModel
+/**
+ * Model Step
+ * 
+ */
+export type Step = Prisma.StepModel
+/**
+ * Model Ingredient
+ * 
+ */
+export type Ingredient = Prisma.IngredientModel
+/**
+ * Model RecipeIngredient
+ * 
+ */
+export type RecipeIngredient = Prisma.RecipeIngredientModel
+/**
+ * Model RecipeBook
+ * 
+ */
+export type RecipeBook = Prisma.RecipeBookModel
+/**
+ * Model Favorite
+ * 
+ */
+export type Favorite = Prisma.FavoriteModel
+/**
+ * Model Comment
+ * 
+ */
+export type Comment = Prisma.CommentModel

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "sonner";
 
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -15,8 +16,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Auth System",
-  description: "Auth System",
+  title: "Dumuni — L'âme de la cuisine africaine",
+  description:
+    "Découvrez des recettes africaines authentiques, cuisinez en mode mains-libres et partagez vos créations avec la communauté Dumuni.",
+  keywords: ["cuisine africaine", "recettes", "mali", "sénégal", "dumuni", "culinaire"],
 };
 
 export default function RootLayout({
@@ -25,11 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <head>
-        {/* Replace this with your own analytics script */}
-        <script defer src="https://cloud.umami.is/script.js" data-website-id="352eab6a-a921-4d6b-b73c-3282f2a38d2f"></script>
-      </head>
+    <html lang="fr" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
@@ -40,6 +39,13 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <Toaster
+            position="top-center"
+            richColors
+            toastOptions={{
+              className: "rounded-xl",
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>

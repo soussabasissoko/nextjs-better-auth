@@ -1,24 +1,29 @@
 import { AppSidebar } from "@/components/app-sidebar";
-
 import { SiteHeader } from "@/components/site-header";
-
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-
-import { auth } from "@/lib/auth"; // path to your Better Auth server instance
+import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
-export default async function layout({
+export default async function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const session = await auth.api.getSession({
-    headers: await headers(), // you need to pass the headers object.
+    headers: await headers(),
   });
 
   if (!session?.user) {
-    return;
+    redirect("/login");
   }
+
+  const user = {
+    id: session.user.id,
+    name: session.user.name,
+    email: session.user.email,
+    image: session.user.image ?? null,
+  };
 
   return (
     <SidebarProvider
@@ -29,10 +34,7 @@ export default async function layout({
         } as React.CSSProperties
       }
     >
-      <AppSidebar
-        user={{ ...session.user, image: session.user.image ?? null }}
-        variant="inset"
-      />
+      <AppSidebar user={user} variant="inset" />
       <SidebarInset>
         <SiteHeader />
         <div className="flex flex-1 flex-col">

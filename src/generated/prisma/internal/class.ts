@@ -19,8 +19,8 @@ const config: runtime.GetPrismaClientConfig = {
   "previewFeatures": [],
   "clientVersion": "7.1.0",
   "engineVersion": "ab635e6b9d606fa5c8fb8b1a7f909c3c3c1c98ba",
-  "activeProvider": "postgresql",
-  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../src/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"postgresql\"\n}\n\nmodel account {\n  id                    String    @id\n  accountId             String\n  providerId            String\n  userId                String\n  accessToken           String?\n  refreshToken          String?\n  idToken               String?\n  accessTokenExpiresAt  DateTime?\n  refreshTokenExpiresAt DateTime?\n  scope                 String?\n  password              String?\n  createdAt             DateTime\n  updatedAt             DateTime\n  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade)\n}\n\nmodel session {\n  id        String   @id\n  expiresAt DateTime\n  token     String   @unique\n  createdAt DateTime\n  updatedAt DateTime\n  ipAddress String?\n  userAgent String?\n  userId    String\n  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)\n}\n\nmodel user {\n  id            String    @id\n  name          String\n  email         String    @unique\n  emailVerified Boolean\n  image         String?\n  createdAt     DateTime\n  updatedAt     DateTime\n  account       account[]\n  session       session[]\n}\n\nmodel verification {\n  id         String    @id\n  identifier String\n  value      String\n  expiresAt  DateTime\n  createdAt  DateTime?\n  updatedAt  DateTime?\n}\n",
+  "activeProvider": "sqlite",
+  "inlineSchema": "generator client {\n  provider = \"prisma-client\"\n  output   = \"../src/generated/prisma\"\n}\n\ndatasource db {\n  provider = \"sqlite\"\n}\n\nmodel account {\n  id                    String    @id\n  accountId             String\n  providerId            String\n  userId                String\n  accessToken           String?\n  refreshToken          String?\n  idToken               String?\n  accessTokenExpiresAt  DateTime?\n  refreshTokenExpiresAt DateTime?\n  scope                 String?\n  password              String?\n  createdAt             DateTime\n  updatedAt             DateTime\n  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade)\n}\n\nmodel session {\n  id        String   @id\n  expiresAt DateTime\n  token     String   @unique\n  createdAt DateTime\n  updatedAt DateTime\n  ipAddress String?\n  userAgent String?\n  userId    String\n  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)\n}\n\nmodel user {\n  id            String   @id\n  name          String\n  email         String   @unique\n  emailVerified Boolean\n  image         String?\n  createdAt     DateTime\n  updatedAt     DateTime\n\n  // Champs Dumuni\n  badge String? @default(\"Débutant\") // Cordon Bleu, Spécialiste Tô...\n\n  account account[]\n  session session[]\n\n  // Relations Dumuni\n  recipes   Recipe[] // Recettes créées par l'utilisateur\n  books     RecipeBook[] // Dossiers/Carnets de recettes\n  favorites Favorite[] // Favoris\n  comments  Comment[] // Questions et réponses posées\n}\n\nmodel verification {\n  id         String    @id\n  identifier String\n  value      String\n  expiresAt  DateTime\n  createdAt  DateTime?\n  updatedAt  DateTime?\n}\n\n// ==========================================\n// MODÈLES DÉDIÉS À DUMUNI 🍲\n// ==========================================\n\nmodel Recipe {\n  id          String   @id @default(cuid())\n  title       String\n  description String?\n  prepTime    Int? // en minutes\n  cookTime    Int? // en minutes\n  servings    Int? // nombre de personnes\n  imageUrl    String?\n  isPublished Boolean  @default(false)\n  createdAt   DateTime @default(now())\n  updatedAt   DateTime @updatedAt\n\n  authorId String\n  author   user   @relation(fields: [authorId], references: [id], onDelete: Cascade)\n\n  steps       Step[]\n  ingredients RecipeIngredient[]\n  favorites   Favorite[]\n  comments    Comment[]\n}\n\nmodel Step {\n  id           String @id @default(cuid())\n  order        Int // L'ordre (1, 2, 3...)\n  instruction  String\n  timerMinutes Int? // Minuteur optionnel (ex: 25 pour \"Démarrer 25 min\")\n\n  recipeId String\n  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)\n}\n\nmodel Ingredient {\n  id   String @id @default(cuid())\n  name String @unique // ex: \"Riz\", \"Gombo\", \"Viande de boeuf\"\n\n  recipes RecipeIngredient[]\n}\n\nmodel RecipeIngredient {\n  id       String @id @default(cuid())\n  quantity String // ex: \"500g\", \"2 c.à.s.\", \"1 kg\"\n\n  recipeId String\n  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)\n\n  ingredientId String\n  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Restrict)\n}\n\n// ------ SOCIAL & ENGAGEMENT ------\n\nmodel RecipeBook {\n  id        String   @id @default(cuid())\n  name      String // ex: \"Pour dimanche\", \"Soir de semaine\"\n  createdAt DateTime @default(now())\n\n  userId String\n  user   user   @relation(fields: [userId], references: [id], onDelete: Cascade)\n\n  favorites Favorite[] // Les recettes mises dans ce carnet\n}\n\nmodel Favorite {\n  id        String   @id @default(cuid())\n  createdAt DateTime @default(now())\n\n  userId String\n  user   user   @relation(fields: [userId], references: [id], onDelete: Cascade)\n\n  recipeId String\n  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)\n\n  recipeBookId String?\n  recipeBook   RecipeBook? @relation(fields: [recipeBookId], references: [id], onDelete: SetNull)\n\n  @@unique([userId, recipeId]) // Un user ne peut mettre en favori qu'une fois une recette\n}\n\nmodel Comment {\n  id        String   @id @default(cuid())\n  content   String\n  createdAt DateTime @default(now())\n\n  userId String\n  user   user   @relation(fields: [userId], references: [id], onDelete: Cascade)\n\n  recipeId String\n  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)\n\n  // Pour gérer les fils de réponses (FAQ / Questions)\n  parentId String?\n  parent   Comment?  @relation(\"CommentToComment\", fields: [parentId], references: [id])\n  replies  Comment[] @relation(\"CommentToComment\")\n}\n",
   "runtimeDataModel": {
     "models": {},
     "enums": {},
@@ -28,7 +28,7 @@ const config: runtime.GetPrismaClientConfig = {
   }
 }
 
-config.runtimeDataModel = JSON.parse("{\"models\":{\"account\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"accountId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"providerId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"accessToken\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"refreshToken\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"idToken\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"accessTokenExpiresAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"refreshTokenExpiresAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"scope\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"password\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"user\",\"relationName\":\"accountTouser\"}],\"dbName\":null},\"session\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"expiresAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"token\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"ipAddress\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userAgent\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"user\",\"relationName\":\"sessionTouser\"}],\"dbName\":null},\"user\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"emailVerified\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"image\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"account\",\"kind\":\"object\",\"type\":\"account\",\"relationName\":\"accountTouser\"},{\"name\":\"session\",\"kind\":\"object\",\"type\":\"session\",\"relationName\":\"sessionTouser\"}],\"dbName\":null},\"verification\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"identifier\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"expiresAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
+config.runtimeDataModel = JSON.parse("{\"models\":{\"account\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"accountId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"providerId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"accessToken\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"refreshToken\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"idToken\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"accessTokenExpiresAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"refreshTokenExpiresAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"scope\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"password\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"user\",\"relationName\":\"accountTouser\"}],\"dbName\":null},\"session\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"expiresAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"token\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"ipAddress\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userAgent\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"user\",\"relationName\":\"sessionTouser\"}],\"dbName\":null},\"user\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"email\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"emailVerified\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"image\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"badge\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"account\",\"kind\":\"object\",\"type\":\"account\",\"relationName\":\"accountTouser\"},{\"name\":\"session\",\"kind\":\"object\",\"type\":\"session\",\"relationName\":\"sessionTouser\"},{\"name\":\"recipes\",\"kind\":\"object\",\"type\":\"Recipe\",\"relationName\":\"RecipeTouser\"},{\"name\":\"books\",\"kind\":\"object\",\"type\":\"RecipeBook\",\"relationName\":\"RecipeBookTouser\"},{\"name\":\"favorites\",\"kind\":\"object\",\"type\":\"Favorite\",\"relationName\":\"FavoriteTouser\"},{\"name\":\"comments\",\"kind\":\"object\",\"type\":\"Comment\",\"relationName\":\"CommentTouser\"}],\"dbName\":null},\"verification\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"identifier\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"value\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"expiresAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"}],\"dbName\":null},\"Recipe\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"title\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"description\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"prepTime\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"cookTime\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"servings\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"imageUrl\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"isPublished\",\"kind\":\"scalar\",\"type\":\"Boolean\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"updatedAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"authorId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"author\",\"kind\":\"object\",\"type\":\"user\",\"relationName\":\"RecipeTouser\"},{\"name\":\"steps\",\"kind\":\"object\",\"type\":\"Step\",\"relationName\":\"RecipeToStep\"},{\"name\":\"ingredients\",\"kind\":\"object\",\"type\":\"RecipeIngredient\",\"relationName\":\"RecipeToRecipeIngredient\"},{\"name\":\"favorites\",\"kind\":\"object\",\"type\":\"Favorite\",\"relationName\":\"FavoriteToRecipe\"},{\"name\":\"comments\",\"kind\":\"object\",\"type\":\"Comment\",\"relationName\":\"CommentToRecipe\"}],\"dbName\":null},\"Step\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"order\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"instruction\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"timerMinutes\",\"kind\":\"scalar\",\"type\":\"Int\"},{\"name\":\"recipeId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"recipe\",\"kind\":\"object\",\"type\":\"Recipe\",\"relationName\":\"RecipeToStep\"}],\"dbName\":null},\"Ingredient\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"recipes\",\"kind\":\"object\",\"type\":\"RecipeIngredient\",\"relationName\":\"IngredientToRecipeIngredient\"}],\"dbName\":null},\"RecipeIngredient\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"quantity\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"recipeId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"recipe\",\"kind\":\"object\",\"type\":\"Recipe\",\"relationName\":\"RecipeToRecipeIngredient\"},{\"name\":\"ingredientId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"ingredient\",\"kind\":\"object\",\"type\":\"Ingredient\",\"relationName\":\"IngredientToRecipeIngredient\"}],\"dbName\":null},\"RecipeBook\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"name\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"user\",\"relationName\":\"RecipeBookTouser\"},{\"name\":\"favorites\",\"kind\":\"object\",\"type\":\"Favorite\",\"relationName\":\"FavoriteToRecipeBook\"}],\"dbName\":null},\"Favorite\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"user\",\"relationName\":\"FavoriteTouser\"},{\"name\":\"recipeId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"recipe\",\"kind\":\"object\",\"type\":\"Recipe\",\"relationName\":\"FavoriteToRecipe\"},{\"name\":\"recipeBookId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"recipeBook\",\"kind\":\"object\",\"type\":\"RecipeBook\",\"relationName\":\"FavoriteToRecipeBook\"}],\"dbName\":null},\"Comment\":{\"fields\":[{\"name\":\"id\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"content\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"createdAt\",\"kind\":\"scalar\",\"type\":\"DateTime\"},{\"name\":\"userId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"user\",\"kind\":\"object\",\"type\":\"user\",\"relationName\":\"CommentTouser\"},{\"name\":\"recipeId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"recipe\",\"kind\":\"object\",\"type\":\"Recipe\",\"relationName\":\"CommentToRecipe\"},{\"name\":\"parentId\",\"kind\":\"scalar\",\"type\":\"String\"},{\"name\":\"parent\",\"kind\":\"object\",\"type\":\"Comment\",\"relationName\":\"CommentToComment\"},{\"name\":\"replies\",\"kind\":\"object\",\"type\":\"Comment\",\"relationName\":\"CommentToComment\"}],\"dbName\":null}},\"enums\":{},\"types\":{}}")
 
 async function decodeBase64AsWasm(wasmBase64: string): Promise<WebAssembly.Module> {
   const { Buffer } = await import('node:buffer')
@@ -37,10 +37,10 @@ async function decodeBase64AsWasm(wasmBase64: string): Promise<WebAssembly.Modul
 }
 
 config.compilerWasm = {
-  getRuntime: async () => await import("@prisma/client/runtime/query_compiler_bg.postgresql.mjs"),
+  getRuntime: async () => await import("@prisma/client/runtime/query_compiler_bg.sqlite.mjs"),
 
   getQueryCompilerWasmModule: async () => {
-    const { wasm } = await import("@prisma/client/runtime/query_compiler_bg.postgresql.wasm-base64.mjs")
+    const { wasm } = await import("@prisma/client/runtime/query_compiler_bg.sqlite.wasm-base64.mjs")
     return await decodeBase64AsWasm(wasm)
   }
 }
@@ -213,6 +213,76 @@ export interface PrismaClient<
     * ```
     */
   get verification(): Prisma.verificationDelegate<ExtArgs, { omit: OmitOpts }>;
+
+  /**
+   * `prisma.recipe`: Exposes CRUD operations for the **Recipe** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Recipes
+    * const recipes = await prisma.recipe.findMany()
+    * ```
+    */
+  get recipe(): Prisma.RecipeDelegate<ExtArgs, { omit: OmitOpts }>;
+
+  /**
+   * `prisma.step`: Exposes CRUD operations for the **Step** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Steps
+    * const steps = await prisma.step.findMany()
+    * ```
+    */
+  get step(): Prisma.StepDelegate<ExtArgs, { omit: OmitOpts }>;
+
+  /**
+   * `prisma.ingredient`: Exposes CRUD operations for the **Ingredient** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Ingredients
+    * const ingredients = await prisma.ingredient.findMany()
+    * ```
+    */
+  get ingredient(): Prisma.IngredientDelegate<ExtArgs, { omit: OmitOpts }>;
+
+  /**
+   * `prisma.recipeIngredient`: Exposes CRUD operations for the **RecipeIngredient** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more RecipeIngredients
+    * const recipeIngredients = await prisma.recipeIngredient.findMany()
+    * ```
+    */
+  get recipeIngredient(): Prisma.RecipeIngredientDelegate<ExtArgs, { omit: OmitOpts }>;
+
+  /**
+   * `prisma.recipeBook`: Exposes CRUD operations for the **RecipeBook** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more RecipeBooks
+    * const recipeBooks = await prisma.recipeBook.findMany()
+    * ```
+    */
+  get recipeBook(): Prisma.RecipeBookDelegate<ExtArgs, { omit: OmitOpts }>;
+
+  /**
+   * `prisma.favorite`: Exposes CRUD operations for the **Favorite** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Favorites
+    * const favorites = await prisma.favorite.findMany()
+    * ```
+    */
+  get favorite(): Prisma.FavoriteDelegate<ExtArgs, { omit: OmitOpts }>;
+
+  /**
+   * `prisma.comment`: Exposes CRUD operations for the **Comment** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Comments
+    * const comments = await prisma.comment.findMany()
+    * ```
+    */
+  get comment(): Prisma.CommentDelegate<ExtArgs, { omit: OmitOpts }>;
 }
 
 export function getPrismaClientClass(): PrismaClientConstructor {
